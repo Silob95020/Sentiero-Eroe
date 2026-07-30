@@ -597,7 +597,7 @@ export default function App() {
           color: var(--ink);
           min-height: 100vh;
           padding: 28px 16px;
-          display: flex; justify-content: center;
+          display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
         }
         .app-root h1, .app-root h2, .app-root h3, .rune-title { font-family: 'Cinzel', serif; letter-spacing: 0.04em; }
         .shell { width: 100%; max-width: 1080px; display: grid; grid-template-columns: 128px 1fr; gap: 16px; }
@@ -691,10 +691,10 @@ export default function App() {
         ul.plain { margin: 6px 0; padding-left: 18px; }
         ul.plain li { margin-bottom: 4px; font-size: 14.5px; }
 
-        .topbar { width: 100%; max-width: 1080px; display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
-        .topbar-title { display: none; }
-        .topbar-tabs { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
-        .topbar-tabs button { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .03em; padding: 5px 12px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--bg-panel); color: var(--ink-dim); cursor: pointer; }
+        .topbar { width: 100%; max-width: 1080px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+        .topbar-title { font-family: 'Cinzel', serif; color: var(--gold-bright); font-size: 15px; letter-spacing: .06em; }
+        .topbar-tabs { display: flex; flex-direction: row; gap: 8px; align-items: center; }
+        .topbar-tabs button { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .03em; padding: 7px 14px; border-radius: 18px; border: 1.5px solid var(--line); background: var(--bg-panel); color: var(--ink-dim); cursor: pointer; }
         .topbar-tabs button.on { border-color: var(--gold-bright); color: var(--ink); background: var(--bg-panel-2); }
 
         .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap: 16px; margin-top: 18px; }
