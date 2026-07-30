@@ -452,6 +452,7 @@ export default function App() {
   useEffect(() => { if (vista === "lista") caricaListaPersonaggi(); }, [vista]);
 
   function nuovoPersonaggio() {
+    try { localStorage.removeItem("ultimoPersonaggioId"); } catch (e) {}
     setPersonaggioId(null); setSalvataggioStato(null);
     setNome(""); setSpecieId(null); setSottospecieId(null); setClasseId(null); setBackgroundId(null);
     setMetodo("standard"); setAssegnazione({ for: null, des: null, cos: null, int: null, sag: null, car: null });
@@ -467,13 +468,14 @@ export default function App() {
     setSalvataggioStato("salvando");
     const id = personaggioId || `p_${Date.now()}`;
     const dato = {
-      id, savedAt: Date.now(), nome, specieId, sottospecieId, classeId, backgroundId,
+      id, savedAt: Date.now(), step, nome, specieId, sottospecieId, classeId, backgroundId,
       metodo, assegnazione, pointBuy, bgModo, bgPiuDue, bgPiuUno, skillScelte,
       armaMischia, armaDistanza, armaturaScelta, scudoScelto, preferisceOro,
       aspetto, tratti, ideali, legami, difetti, backstory,
     };
     try {
       localStorage.setItem(`personaggi:${id}`, JSON.stringify(dato));
+      localStorage.setItem("ultimoPersonaggioId", id);
       setPersonaggioId(id);
       setSalvataggioStato("salvato");
     } catch (e) {
@@ -481,7 +483,7 @@ export default function App() {
     }
   }
 
-  function caricaPersonaggio(dato) {
+  function caricaPersonaggio(dato, vaiAllaScheda = true) {
     setPersonaggioId(dato.id || null);
     setNome(dato.nome || "");
     setSpecieId(dato.specieId || null);
@@ -506,10 +508,37 @@ export default function App() {
     setLegami(dato.legami || "");
     setDifetti(dato.difetti || "");
     setBackstory(dato.backstory || "");
-    setSalvataggioStato("salvato");
     setVista("wizard");
-    setStep(8);
+    if (vaiAllaScheda) {
+      setSalvataggioStato("salvato");
+      setStep(8);
+    } else {
+      setStep(dato.step || 0);
+    }
+    if (dato.id) { try { localStorage.setItem("ultimoPersonaggioId", dato.id); } catch (e) {} }
   }
+
+  // Ripristina automaticamente l'ultimo personaggio su cui si stava lavorando,
+  // così un aggiornamento della pagina o una chiusura accidentale non fa perdere nulla.
+  useEffect(() => {
+    try {
+      const lastId = localStorage.getItem("ultimoPersonaggioId");
+      if (lastId) {
+        const raw = localStorage.getItem(`personaggi:${lastId}`);
+        if (raw) caricaPersonaggio(JSON.parse(raw), false);
+      }
+    } catch (e) { /* nessun salvataggio precedente valido, si parte da zero */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Autosalvataggio: appena qualcosa cambia, salva in automatico dopo una breve pausa.
+  useEffect(() => {
+    if (vista !== "wizard") return;
+    if (!nome && !specieId && !classeId && !backgroundId) return;
+    const t = setTimeout(() => { salvaPersonaggio(); }, 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nome, specieId, sottospecieId, classeId, backgroundId, metodo, assegnazione, pointBuy, bgModo, bgPiuDue, bgPiuUno, skillScelte, armaMischia, armaDistanza, armaturaScelta, scudoScelto, preferisceOro, aspetto, tratti, ideali, legami, difetti, backstory]);
 
   function eliminaPersonaggio(id) {
     try {
