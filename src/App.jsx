@@ -378,6 +378,7 @@ const STEP_DEFS = [
   { label: "Punteggi", rune: "ᚱ" },
   { label: "Abilità", rune: "ᛊ" },
   { label: "Equip.", rune: "ᚲ" },
+  { label: "Storia", rune: "ᛃ" },
   { label: "Scheda", rune: "ᛖ" },
 ];
 
@@ -414,23 +415,31 @@ export default function App() {
   const [scudoScelto, setScudoScelto] = useState(false);
   const [preferisceOro, setPreferisceOro] = useState(false);
 
+  const [aspetto, setAspetto] = useState("");
+  const [tratti, setTratti] = useState("");
+  const [ideali, setIdeali] = useState("");
+  const [legami, setLegami] = useState("");
+  const [difetti, setDifetti] = useState("");
+  const [backstory, setBackstory] = useState("");
+
   const [vista, setVista] = useState("wizard"); // "wizard" | "lista"
   const [personaggioId, setPersonaggioId] = useState(null);
   const [salvataggioStato, setSalvataggioStato] = useState(null); // null | "salvando" | "salvato" | "errore"
   const [personaggiSalvati, setPersonaggiSalvati] = useState([]);
   const [caricamentoLista, setCaricamentoLista] = useState(false);
 
-  async function caricaListaPersonaggi() {
+  function caricaListaPersonaggi() {
     setCaricamentoLista(true);
     try {
-      const res = await window.storage.list("personaggi:");
-      const keys = res?.keys || [];
       const items = [];
-      for (const k of keys) {
-        try {
-          const r = await window.storage.get(k);
-          if (r?.value) items.push(JSON.parse(r.value));
-        } catch (e) { /* voce corrotta, la ignoro */ }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("personaggi:")) {
+          try {
+            const v = localStorage.getItem(k);
+            if (v) items.push(JSON.parse(v));
+          } catch (e) { /* voce corrotta, la ignoro */ }
+        }
       }
       items.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
       setPersonaggiSalvati(items);
@@ -450,21 +459,23 @@ export default function App() {
     setBgModo("duePiuUno"); setBgPiuDue(null); setBgPiuUno(null);
     setSkillScelte([]); setArmaMischia(null); setArmaDistanza(null); setArmaturaScelta(null);
     setScudoScelto(false); setPreferisceOro(false);
+    setAspetto(""); setTratti(""); setIdeali(""); setLegami(""); setDifetti(""); setBackstory("");
     setVista("wizard"); setStep(0);
   }
 
-  async function salvaPersonaggio() {
+  function salvaPersonaggio() {
     setSalvataggioStato("salvando");
     const id = personaggioId || `p_${Date.now()}`;
     const dato = {
       id, savedAt: Date.now(), nome, specieId, sottospecieId, classeId, backgroundId,
       metodo, assegnazione, pointBuy, bgModo, bgPiuDue, bgPiuUno, skillScelte,
       armaMischia, armaDistanza, armaturaScelta, scudoScelto, preferisceOro,
+      aspetto, tratti, ideali, legami, difetti, backstory,
     };
     try {
-      const res = await window.storage.set(`personaggi:${id}`, JSON.stringify(dato));
-      if (res) { setPersonaggioId(id); setSalvataggioStato("salvato"); }
-      else setSalvataggioStato("errore");
+      localStorage.setItem(`personaggi:${id}`, JSON.stringify(dato));
+      setPersonaggioId(id);
+      setSalvataggioStato("salvato");
     } catch (e) {
       setSalvataggioStato("errore");
     }
@@ -489,14 +500,20 @@ export default function App() {
     setArmaturaScelta(dato.armaturaScelta || null);
     setScudoScelto(!!dato.scudoScelto);
     setPreferisceOro(!!dato.preferisceOro);
+    setAspetto(dato.aspetto || "");
+    setTratti(dato.tratti || "");
+    setIdeali(dato.ideali || "");
+    setLegami(dato.legami || "");
+    setDifetti(dato.difetti || "");
+    setBackstory(dato.backstory || "");
     setSalvataggioStato("salvato");
     setVista("wizard");
-    setStep(7);
+    setStep(8);
   }
 
-  async function eliminaPersonaggio(id) {
+  function eliminaPersonaggio(id) {
     try {
-      await window.storage.delete(`personaggi:${id}`);
+      localStorage.removeItem(`personaggi:${id}`);
       setPersonaggiSalvati((prev) => prev.filter((p) => p.id !== id));
     } catch (e) { /* riprova pure dal pulsante */ }
   }
@@ -711,6 +728,14 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-title">Il Sentiero dell'Eroe</div>
         <div className="topbar-tabs">
+          {vista === "wizard" && (
+            <span style={{ fontSize: 11.5, color: "var(--ink-dim)", marginRight: 4 }}>
+              {salvataggioStato === "salvando" && "Salvataggio…"}
+              {salvataggioStato === "salvato" && "Salvato ✓"}
+              {salvataggioStato === "errore" && "Errore nel salvataggio"}
+            </span>
+          )}
+          {vista === "wizard" && <button onClick={salvaPersonaggio}>💾 Salva</button>}
           <button className={vista === "wizard" ? "on" : ""} onClick={nuovoPersonaggio}>+ Nuovo personaggio</button>
           <button className={vista === "lista" ? "on" : ""} onClick={() => setVista("lista")}>I miei personaggi</button>
         </div>
@@ -781,7 +806,8 @@ export default function App() {
                 <div className="tratto"><b>4. Punteggi di Abilità</b><p>I sei numeri che misurano corpo e mente: Forza, Destrezza, Costituzione, Intelligenza, Saggezza, Carisma.</p></div>
                 <div className="tratto"><b>5. Abilità</b><p>In cosa il personaggio è particolarmente ferrato.</p></div>
                 <div className="tratto"><b>6. Equipaggiamento</b><p>Cosa porta con sé all'inizio del viaggio.</p></div>
-                <div className="tratto"><b>7. La Scheda</b><p>Il riepilogo completo, pronto per il tavolo di gioco.</p></div>
+                <div className="tratto"><b>7. Storia</b><p>Chi è davvero: aspetto, personalità e il racconto della sua vita prima dell'avventura.</p></div>
+                <div className="tratto"><b>8. La Scheda</b><p>Il riepilogo completo, pronto per il tavolo di gioco.</p></div>
               </div>
               <div style={{ marginTop: 20 }}>
                 <span style={{ fontSize: 13, color: "var(--ink-dim)" }}>Nome del personaggio (puoi cambiarlo in ogni momento)</span>
@@ -1122,7 +1148,7 @@ export default function App() {
               )}
               <div className="footer-nav">
                 <button className="btn" onClick={() => vaiA(5)}>← Indietro</button>
-                <button className="btn primary" onClick={() => vaiA(7)}>Vai alla scheda →</button>
+                <button className="btn primary" onClick={() => vaiA(7)}>Avanti →</button>
               </div>
             </div>
           )}
@@ -1137,8 +1163,46 @@ export default function App() {
             </div>
           )}
 
-          {/* STEP 7 — SCHEDA RIEPILOGO */}
-          {step === 7 && specie && classe && background && (
+          {/* STEP 7 — STORIA DEL PERSONAGGIO */}
+          {step === 7 && (
+            <div className="card">
+              <div className="eyebrow">Passo 7</div>
+              <h2 className="titolo">La storia del tuo personaggio</h2>
+              <p className="sottotitolo">Questa parte è facoltativa ma dà vita al personaggio: chi è, da dove viene, cosa lo spinge ad avventurarsi. Puoi scrivere tanto o poco quanto vuoi, e tornare a modificarlo quando vuoi.</p>
+
+              <div className="eyebrow">Aspetto fisico</div>
+              <textarea value={aspetto} onChange={(e) => setAspetto(e.target.value)} placeholder="Altezza, corporatura, colore di occhi e capelli, segni particolari, modo di vestire..."
+                style={{ width: "100%", minHeight: 110, background: "var(--bg-panel)", border: "1px solid var(--line)", borderRadius: 4, padding: "10px 12px", color: "var(--ink)", fontFamily: "'EB Garamond', serif", fontSize: 15, resize: "vertical" }} />
+
+              <div className="eyebrow" style={{ marginTop: 16 }}>Tratti della personalità</div>
+              <textarea value={tratti} onChange={(e) => setTratti(e.target.value)} placeholder="Come si comporta, come parla, piccole abitudini o manie..."
+                style={{ width: "100%", minHeight: 110, background: "var(--bg-panel)", border: "1px solid var(--line)", borderRadius: 4, padding: "10px 12px", color: "var(--ink)", fontFamily: "'EB Garamond', serif", fontSize: 15, resize: "vertical" }} />
+
+              <div className="eyebrow" style={{ marginTop: 16 }}>Ideali</div>
+              <textarea value={ideali} onChange={(e) => setIdeali(e.target.value)} placeholder="In cosa crede fermamente, cosa lo guida..."
+                style={{ width: "100%", minHeight: 90, background: "var(--bg-panel)", border: "1px solid var(--line)", borderRadius: 4, padding: "10px 12px", color: "var(--ink)", fontFamily: "'EB Garamond', serif", fontSize: 15, resize: "vertical" }} />
+
+              <div className="eyebrow" style={{ marginTop: 16 }}>Legami</div>
+              <textarea value={legami} onChange={(e) => setLegami(e.target.value)} placeholder="Persone, luoghi o oggetti a cui tiene..."
+                style={{ width: "100%", minHeight: 90, background: "var(--bg-panel)", border: "1px solid var(--line)", borderRadius: 4, padding: "10px 12px", color: "var(--ink)", fontFamily: "'EB Garamond', serif", fontSize: 15, resize: "vertical" }} />
+
+              <div className="eyebrow" style={{ marginTop: 16 }}>Difetti</div>
+              <textarea value={difetti} onChange={(e) => setDifetti(e.target.value)} placeholder="Debolezze, paure, vizi..."
+                style={{ width: "100%", minHeight: 90, background: "var(--bg-panel)", border: "1px solid var(--line)", borderRadius: 4, padding: "10px 12px", color: "var(--ink)", fontFamily: "'EB Garamond', serif", fontSize: 15, resize: "vertical" }} />
+
+              <div className="eyebrow" style={{ marginTop: 16 }}>Storia (backstory)</div>
+              <textarea value={backstory} onChange={(e) => setBackstory(e.target.value)} placeholder="Il racconto vero e proprio: da dove viene, cosa gli è successo, perché ha iniziato ad avventurarsi..."
+                style={{ width: "100%", minHeight: 260, background: "var(--bg-panel)", border: "1px solid var(--line)", borderRadius: 4, padding: "10px 12px", color: "var(--ink)", fontFamily: "'EB Garamond', serif", fontSize: 15, resize: "vertical" }} />
+
+              <div className="footer-nav">
+                <button className="btn" onClick={() => vaiA(6)}>← Indietro</button>
+                <button className="btn primary" onClick={() => vaiA(8)}>Vai alla scheda →</button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 8 — SCHEDA RIEPILOGO */}
+          {step === 8 && specie && classe && background && (
             <div className="card sheet">
               <div className="sheet-head">
                 <div>
@@ -1225,8 +1289,20 @@ export default function App() {
                 </div>
               </div>
 
+              {(aspetto || tratti || ideali || legami || difetti || backstory) && (
+                <div className="detail">
+                  <div className="eyebrow">Storia del personaggio</div>
+                  {aspetto && <div className="tratto"><b>Aspetto fisico</b><p>{aspetto}</p></div>}
+                  {tratti && <div className="tratto"><b>Tratti della personalità</b><p>{tratti}</p></div>}
+                  {ideali && <div className="tratto"><b>Ideali</b><p>{ideali}</p></div>}
+                  {legami && <div className="tratto"><b>Legami</b><p>{legami}</p></div>}
+                  {difetti && <div className="tratto"><b>Difetti</b><p>{difetti}</p></div>}
+                  {backstory && <div className="tratto"><b>Storia</b><p style={{whiteSpace:"pre-wrap"}}>{backstory}</p></div>}
+                </div>
+              )}
+
               <div className="footer-nav">
-                <button className="btn" onClick={() => vaiA(6)}>← Indietro</button>
+                <button className="btn" onClick={() => vaiA(7)}>← Indietro</button>
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <span style={{ fontSize: 12.5, color: "var(--ink-dim)" }}>
                     {salvataggioStato === "salvando" && "Salvataggio in corso…"}
@@ -1240,10 +1316,10 @@ export default function App() {
             </div>
           )}
 
-          {/* STEP 7 — messaggio se mancano scelte necessarie */}
-          {step === 7 && !(specie && classe && background) && (
+          {/* STEP 8 — messaggio se mancano scelte necessarie */}
+          {step === 8 && !(specie && classe && background) && (
             <div className="card">
-              <div className="eyebrow">Passo 7</div>
+              <div className="eyebrow">Passo 8</div>
               <h2 className="titolo">Manca ancora qualcosa</h2>
               <p className="sottotitolo">Per generare la scheda servono almeno una specie, una classe e un'origine. Puoi completare i passi in qualsiasi ordine: torna a quelli mancanti quando vuoi.</p>
               <div className="detail" style={{marginTop:0, borderTop:"none", paddingTop:0}}>
